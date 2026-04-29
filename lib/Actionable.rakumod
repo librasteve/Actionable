@@ -4,31 +4,27 @@ method capture-map(--> Hash) { {} }
 
 method transform(Str $attr, $raw) { $raw }
 
-method from-match($match) {
-    my %map  = self.capture-map;
+multi method from-match(Any:U: $match) {
     my %init;
-    for self.^attributes -> $attr {
-        next if $attr.name.starts-with('@') || $attr.name.starts-with('%');
-        my $name = $attr.name.substr(2);
-        my $path = %map{$name} // $name;
-        my $raw  = resolve-capture($match, $path) // next;
-        my $coerced = $attr.type ~~ Numeric ?? +$raw !! ~$raw;
-        %init{$name} = self.transform($name, $coerced);
-    }
+    apply-match(self, $match, -> $attr, $name, $val { %init{$name} = $val });
     self.new(|%init);
 }
 
-method update-from-match($match) {
-    my %map = self.capture-map;
-    for self.^attributes -> $attr {
+multi method from-match(Any:D: $match) {
+    apply-match(self, $match, -> $attr, $name, $val { $attr.set_value(self, $val) });
+    self
+}
+
+sub apply-match($self, $match, &act) {
+    my %map = $self.capture-map;
+    for $self.^attributes -> $attr {
         next if $attr.name.starts-with('@') || $attr.name.starts-with('%');
         my $name = $attr.name.substr(2);
         my $path = %map{$name} // $name;
         my $raw  = resolve-capture($match, $path) // next;
-        my $coerced = $attr.type ~~ Numeric ?? +$raw !! ~$raw;
-        $attr.set_value(self, self.transform($name, $coerced));
+        my $val  = $self.transform($name, $attr.type ~~ Numeric ?? +$raw !! ~$raw);
+        act($attr, $name, $val);
     }
-    self
 }
 
 sub resolve-capture($match, Str $path) {

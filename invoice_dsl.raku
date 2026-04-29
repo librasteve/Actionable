@@ -30,11 +30,13 @@ grammar Grammar {
         [ \n+ <ws> [ <field-line> | <item-line> ] ]*
         \n*
     }
-    rule  invoice-line  { invoice <id>                                                       }
+    rule  invoice-line  { invoice  <id>                     }
     rule  field-line    { | date   <date>
                           | client <client=quoted-string>
-                          | tax    <tax-rate=number> '%'                                  }
-    rule  item-line     { item <description=quoted-string> hours <hours=number> rate <rate=number> }
+                          | tax    <tax-rate=number> '%'    }
+    rule  item-line     { item     <description=quoted-string>
+                          hours    <hours=number>
+                          rate     <rate=number>             }
     token id            { <[A..Za..z0..9_\-]>+       }
     token date          { \d\d\d\d '-' \d\d '-' \d\d }
     token quoted-string { '"' <( <-["]>+ )> '"'      }
@@ -44,7 +46,7 @@ grammar Grammar {
 class Actions {
     method TOP($/) {
         my $inv = Invoice.from-match($<invoice-line>);
-        $inv.update-from-match($_) for $<field-line>;
+        $inv.from-match($_) for $<field-line>;
         $inv.items.push(Item.from-match($_)) for $<item-line>;
         make $inv;
     }
