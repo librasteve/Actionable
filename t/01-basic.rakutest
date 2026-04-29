@@ -1,6 +1,67 @@
 use Test;
+use lib 'lib';
 use Actionable;
 
-pass "replace me";
+grammar TestGrammar {
+    token TOP        { <widget-line>                                    }
+    rule  widget-line { widget <name> qty <number> price <number>      }
+    token name       { \w+                                             }
+    token number     { \d+ [ '.' \d+ ]?                               }
+}
+
+class Widget does Actionable {
+    has Str  $.name;
+    has Real $.qty;
+    has Real $.price;
+    method capture-map {
+        { qty   => 'number.0',
+          price => 'number.1' }
+    }
+}
+
+subtest 'from-match populates scalar attributes', {
+    my $m = TestGrammar.parse('widget sprocket qty 5 price 9.99');
+    ok  $m,                          'grammar parses';
+    my $w = Widget.from-match($m<widget-line>);
+    isa-ok $w, Widget,               'returns a Widget';
+    is     $w.name,  'sprocket',     'name resolved by own name';
+    is     $w.qty,   5,              'qty resolved via capture-map index 0';
+    is-approx $w.price, 9.99,        'price resolved via capture-map index 1';
+};
+
+subtest 'transform hook runs after coercion', {
+    class Discounted does Actionable {
+        has Real $.price;
+        method capture-map { { price => 'number.1' } }
+        method transform(Str $attr, $raw) {
+            $attr eq 'price' ?? $raw * 0.9 !! $raw
+        }
+    }
+    my $m = TestGrammar.parse('widget x qty 1 price 100');
+    my $d = Discounted.from-match($m<widget-line>);
+    is-approx $d.price, 90.0, 'transform applied 10% discount';
+};
+
+subtest 'array attributes are skipped', {
+    class Container does Actionable {
+        has Str $.name;
+        has     @.tags;
+    }
+    my $m = TestGrammar.parse('widget box qty 1 price 0');
+    my $c = Container.from-match($m<widget-line>);
+    is      $c.name,        'box', 'scalar attr populated';
+    is      $c.tags.elems,  0,     'array attr untouched';
+};
+
+subtest 'missing capture is silently skipped', {
+    class Sparse does Actionable {
+        has Str $.name;
+        has Str $.nonexistent;
+    }
+    my $m = TestGrammar.parse('widget thing qty 1 price 0');
+    my $s = Sparse.from-match($m<widget-line>);
+    is   $s.name,              'thing', 'present attr populated';
+    nok  $s.nonexistent.defined,        'absent capture leaves attr at default';
+};
 
 done-testing;
