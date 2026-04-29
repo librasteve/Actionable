@@ -2,14 +2,9 @@ use lib 'lib';
 use Actionable;
 
 class Item does Actionable {
-    has Str $.description;
+    has Str  $.description;
     has Real $.hours;
     has Real $.rate;
-    method capture-map {
-        { description => 'quoted-string',
-          hours       => 'number.0',
-          rate        => 'number.1' }
-    }
     method subtotal { $.hours * $.rate }
 }
 
@@ -19,10 +14,6 @@ class Invoice does Actionable {
     has Str  $.client   is rw = "";
     has Real $.tax-rate is rw = 0.0;
     has      @.items;
-    method capture-map {
-        { client   => 'quoted-string',
-          tax-rate => 'percent.number' }
-    }
     method transform(Str $attr, $raw) {
         $attr eq 'tax-rate' ?? $raw / 100 !! $raw
     }
@@ -39,13 +30,14 @@ grammar Grammar {
         [ \n+ <ws> [ <field-line> | <item-line> ] ]*
         \n*
     }
-    rule  invoice-line  { invoice <id>                                      }
-    rule  field-line    { date <date> | client <quoted-string> | tax <percent> }
-    rule  item-line     { item <quoted-string> hours <number> rate <number> }
+    rule  invoice-line  { invoice <id>                                                       }
+    rule  field-line    { | date   <date>
+                          | client <client=quoted-string>
+                          | tax    <tax-rate=number> '%'                                  }
+    rule  item-line     { item <description=quoted-string> hours <hours=number> rate <rate=number> }
     token id            { <[A..Za..z0..9_\-]>+       }
     token date          { \d\d\d\d '-' \d\d '-' \d\d }
     token quoted-string { '"' <( <-["]>+ )> '"'      }
-    token percent       { <number> '%'               }
     token number        { \d+ [ '.' \d+ ]?           }
 }
 
