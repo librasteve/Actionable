@@ -45,9 +45,9 @@ grammar Grammar {
 
 class Actions {
     method TOP($/) {
-        my $inv = Invoice.from-match($<invoice-line>);
-        $inv.from-match($_) for $<field-line>;
-        $inv.items.push(Item.from-match($_)) for $<item-line>;
+        my $inv = Invoice.action($<invoice-line>);
+        $inv.action($_) for $<field-line>;
+        $inv.items.push(Item.action($_)) for $<item-line>;
         make $inv;
     }
 }
