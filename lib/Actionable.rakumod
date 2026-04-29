@@ -49,30 +49,90 @@ Actionable - auto-populate Raku classes from grammar match objects
 use Actionable;
 
 class Item does Actionable {
-    has Str $.description;
-    has Num $.hours;
-    has Num $.rate;
-    method capture-map {
-        { description => 'quoted-string',
-          hours       => 'number.0',
-          rate        => 'number.1' }
+    has Str  $.description;
+    has Real $.hours;
+    has Real $.rate;
+    method subtotal { $.hours * $.rate }
+}
+
+class Invoice does Actionable {
+    has Str  $.id       is rw = "";
+    has Str  $.date     is rw = "";
+    has Str  $.client   is rw = "";
+    has Real $.tax-rate is rw = 0.0;
+    has Item @.items;
+    method transform(Str $attr, $raw) {
+        $attr eq 'tax-rate' ?? $raw / 100 !! $raw
     }
 }
 
-# In your Actions class:
-my $item = Item.action($match);
+class Actions {
+    method TOP($/) {
+        my $inv = Invoice.action($<invoice-line>);  # create from type object
+        $inv.action($_) for $<field-line>;           # update existing instance
+        $inv.items.push(Item.action($_)) for $<item-line>;
+        make $inv;
+    }
+}
 
 =end code
 
 =head1 DESCRIPTION
 
-C<Actionable> is a role providing a C<action> class method. Mix it into
-any class to auto-populate scalar attributes from a Raku grammar match object.
+C<Actionable> is a role that eliminates boilerplate in Raku grammar C<Actions>
+classes. Mix it into any class to get an C<action> method that auto-populates
+attributes from a grammar match object.
 
-Attributes not in C<capture-map> are looked up by their own name. Numeric
-attributes (typed C<Int>, C<Num>, C<Rat>, etc.) are coerced with C<+>;
-all others with C<~>. Array and hash attributes are skipped. Override
-C<transform> for post-coercion adjustments.
+C<action> dispatches on whether the invocant is defined:
+
+=item B<Type object> (C<MyClass.action($match)>) — creates and returns a new instance, populating scalar attributes from named captures in C<$match>.
+
+=item B<Instance> (C<$obj.action($match)>) — updates the instance in place from C<$match> and returns C<self>.
+
+=head2 Attribute mapping
+
+By default each attribute is looked up by its own name as a named capture.
+To override, provide a C<capture-map> method returning a C<Hash> of
+C<attr-name =E<gt> dot-path>:
+
+=begin code :lang<raku>
+
+method capture-map {
+    { qty   => 'number.0',   # $match<number>[0]
+      price => 'number.1' }  # $match<number>[1]
+}
+
+=end code
+
+Dot-path segments are hash keys or array indices (all-digit segments are
+treated as indices).
+
+Alternatively, use Raku's aliased capture syntax in the grammar to name
+captures after the target attribute — avoiding C<capture-map> entirely:
+
+=begin code :lang<raku>
+
+rule item-line { item <description=quoted-string> hours <hours=number> rate <rate=number> }
+
+=end code
+
+=head2 Type coercion
+
+Attributes typed as C<Numeric> (or any subtype: C<Int>, C<Real>, C<Rat>,
+C<Num>) are coerced with C<+>; all others with C<~>. Array and hash
+attributes are skipped automatically.
+
+=head2 Post-coercion transforms
+
+Override C<transform> to adjust a value after coercion:
+
+=begin code :lang<raku>
+
+method transform(Str $attr, $raw) {
+    $attr eq 'tax-rate' ?? $raw / 100 !! $raw
+}
+
+=end code
 
 =head1 AUTHOR
 
