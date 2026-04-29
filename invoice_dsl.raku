@@ -14,11 +14,18 @@ class Item does Actionable {
 }
 
 class Invoice does Actionable {
-    has Str $.id       is rw = "";
-    has Str $.date     is rw = "";
-    has Str $.client   is rw = "";
+    has Str  $.id       is rw = "";
+    has Str  $.date     is rw = "";
+    has Str  $.client   is rw = "";
     has Real $.tax-rate is rw = 0.0;
-    has     @.items;
+    has      @.items;
+    method capture-map {
+        { client   => 'quoted-string',
+          tax-rate => 'percent.number' }
+    }
+    method transform(Str $attr, $raw) {
+        $attr eq 'tax-rate' ?? $raw / 100 !! $raw
+    }
     method subtotal { [+] @.items.map(*.subtotal) }
     method tax      { $.subtotal * $.tax-rate }
     method total    { $.subtotal + $.tax }
@@ -45,14 +52,8 @@ grammar Grammar {
 class Actions {
     method TOP($/) {
         my $inv = Invoice.from-match($<invoice-line>);
-        for $<field-line> -> $f {
-            { $inv.date     = ~$_       } with $f<date>;
-            { $inv.client   = ~$_       } with $f<quoted-string>;
-            { $inv.tax-rate = +$_ / 100 } with $f<percent><number>;
-        }
-        for $<item-line> -> $i {
-            $inv.items.push: Item.from-match($i);
-        }
+        $inv.update-from-match($_) for $<field-line>;
+        $inv.items.push(Item.from-match($_)) for $<item-line>;
         make $inv;
     }
 }

@@ -18,6 +18,19 @@ method from-match($match) {
     self.new(|%init);
 }
 
+method update-from-match($match) {
+    my %map = self.capture-map;
+    for self.^attributes -> $attr {
+        next if $attr.name.starts-with('@') || $attr.name.starts-with('%');
+        my $name = $attr.name.substr(2);
+        my $path = %map{$name} // $name;
+        my $raw  = resolve-capture($match, $path) // next;
+        my $coerced = $attr.type ~~ Numeric ?? +$raw !! ~$raw;
+        $attr.set_value(self, self.transform($name, $coerced));
+    }
+    self
+}
+
 sub resolve-capture($match, Str $path) {
     my $cur = $match;
     for $path.split('.') -> $step {
