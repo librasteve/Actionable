@@ -7,7 +7,7 @@
   ],
   "depends": [
   ],
-  "description": "blah blah blah",
+  "description": "auto-populate Raku classes from grammar match objects",
   "license": "Artistic-2.0",
   "name": "Actionable",
   "perl": "6.d",

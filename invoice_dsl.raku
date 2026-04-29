@@ -1,4 +1,3 @@
-use lib 'lib';
 use Actionable;
 
 class Item does Actionable {
@@ -13,7 +12,7 @@ class Invoice does Actionable {
     has Str  $.date     is rw = "";
     has Str  $.client   is rw = "";
     has Real $.tax-rate is rw = 0.0;
-    has      @.items;
+    has Item @.items;
     method transform(Str $attr, $raw) {
         $attr eq 'tax-rate' ?? $raw / 100 !! $raw
     }
@@ -36,7 +35,7 @@ grammar Grammar {
                           | tax    <tax-rate=number> '%'    }
     rule  item-line     { item     <description=quoted-string>
                           hours    <hours=number>
-                          rate     <rate=number>             }
+                          rate     <rate=number>            }
     token id            { <[A..Za..z0..9_\-]>+       }
     token date          { \d\d\d\d '-' \d\d '-' \d\d }
     token quoted-string { '"' <( <-["]>+ )> '"'      }
@@ -53,7 +52,7 @@ class Actions {
 }
 
 sub parse(Str $text --> Invoice) {
-    Grammar.parse($text, actions => Actions.new).made;
+    Grammar.parse($text, :actions(Actions.new)).made;
 }
 
 sub render(Invoice $inv --> Str) {

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(raku *)",
+      "Bash(mi6 *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)"
+    ]
+  }
+}
