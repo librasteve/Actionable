@@ -1,11 +1,37 @@
-unit class Actionable;
+unit role Actionable;
 
+method capture-map(--> Hash) { {} }
+
+method transform(Str $attr, $raw) { $raw }
+
+method from-match($match) {
+    my %map  = self.capture-map;
+    my %init;
+    for self.^attributes -> $attr {
+        next if $attr.name.starts-with('@') || $attr.name.starts-with('%');
+        my $name = $attr.name.substr(2);
+        my $path = %map{$name} // $name;
+        my $raw  = resolve-capture($match, $path) // next;
+        my $coerced = $attr.type ~~ Numeric ?? +$raw !! ~$raw;
+        %init{$name} = self.transform($name, $coerced);
+    }
+    self.new(|%init);
+}
+
+sub resolve-capture($match, Str $path) {
+    my $cur = $match;
+    for $path.split('.') -> $step {
+        $cur = $step ~~ /^ \d+ $/ ?? $cur[$step.Int] !! $cur{$step};
+        return Nil without $cur;
+    }
+    $cur
+}
 
 =begin pod
 
 =head1 NAME
 
-Actionable - blah blah blah
+Actionable - auto-populate Raku classes from grammar match objects
 
 =head1 SYNOPSIS
 
@@ -13,11 +39,31 @@ Actionable - blah blah blah
 
 use Actionable;
 
+class Item does Actionable {
+    has Str $.description;
+    has Num $.hours;
+    has Num $.rate;
+    method capture-map {
+        { description => 'quoted-string',
+          hours       => 'number.0',
+          rate        => 'number.1' }
+    }
+}
+
+# In your Actions class:
+my $item = Item.from-match($match);
+
 =end code
 
 =head1 DESCRIPTION
 
-Actionable is ...
+C<Actionable> is a role providing a C<from-match> class method. Mix it into
+any class to auto-populate scalar attributes from a Raku grammar match object.
+
+Attributes not in C<capture-map> are looked up by their own name. Numeric
+attributes (typed C<Int>, C<Num>, C<Rat>, etc.) are coerced with C<+>;
+all others with C<~>. Array and hash attributes are skipped. Override
+C<transform> for post-coercion adjustments.
 
 =head1 AUTHOR
 
