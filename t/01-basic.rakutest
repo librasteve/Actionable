@@ -19,10 +19,10 @@ class Widget does Actionable {
     }
 }
 
-subtest 'from-match populates scalar attributes', {
+subtest 'action populates scalar attributes', {
     my $m = TestGrammar.parse('widget sprocket qty 5 price 9.99');
     ok  $m,                          'grammar parses';
-    my $w = Widget.from-match($m<widget-line>);
+    my $w = Widget.action($m<widget-line>);
     isa-ok $w, Widget,               'returns a Widget';
     is     $w.name,  'sprocket',     'name resolved by own name';
     is     $w.qty,   5,              'qty resolved via capture-map index 0';
@@ -38,7 +38,7 @@ subtest 'transform hook runs after coercion', {
         }
     }
     my $m = TestGrammar.parse('widget x qty 1 price 100');
-    my $d = Discounted.from-match($m<widget-line>);
+    my $d = Discounted.action($m<widget-line>);
     is-approx $d.price, 90.0, 'transform applied 10% discount';
 };
 
@@ -48,7 +48,7 @@ subtest 'array attributes are skipped', {
         has     @.tags;
     }
     my $m = TestGrammar.parse('widget box qty 1 price 0');
-    my $c = Container.from-match($m<widget-line>);
+    my $c = Container.action($m<widget-line>);
     is      $c.name,        'box', 'scalar attr populated';
     is      $c.tags.elems,  0,     'array attr untouched';
 };
@@ -59,7 +59,7 @@ subtest 'missing capture is silently skipped', {
         has Str $.nonexistent;
     }
     my $m = TestGrammar.parse('widget thing qty 1 price 0');
-    my $s = Sparse.from-match($m<widget-line>);
+    my $s = Sparse.action($m<widget-line>);
     is   $s.name,              'thing', 'present attr populated';
     nok  $s.nonexistent.defined,        'absent capture leaves attr at default';
 };

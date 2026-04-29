@@ -4,13 +4,13 @@ method capture-map(--> Hash) { {} }
 
 method transform(Str $attr, $raw) { $raw }
 
-multi method from-match(Any:U: $match) {
+multi method action(Any:U: $match) {
     my %init;
     apply-match(self, $match, -> $attr, $name, $val { %init{$name} = $val });
     self.new(|%init);
 }
 
-multi method from-match(Any:D: $match) {
+multi method action(Any:D: $match) {
     apply-match(self, $match, -> $attr, $name, $val { $attr.set_value(self, $val) });
     self
 }
@@ -60,13 +60,13 @@ class Item does Actionable {
 }
 
 # In your Actions class:
-my $item = Item.from-match($match);
+my $item = Item.action($match);
 
 =end code
 
 =head1 DESCRIPTION
 
-C<Actionable> is a role providing a C<from-match> class method. Mix it into
+C<Actionable> is a role providing a C<action> class method. Mix it into
 any class to auto-populate scalar attributes from a Raku grammar match object.
 
 Attributes not in C<capture-map> are looked up by their own name. Numeric
