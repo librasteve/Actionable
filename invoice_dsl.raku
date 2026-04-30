@@ -64,17 +64,17 @@ sub render(Invoice $inv --> Str) {
         "-" x 58,
     );
     for $inv.items {
-        @lines.push: sprintf("%-30s %6.1f %8.2f %10.2f",
+        @lines.append: sprintf("%-30s %6.1f %8.2f %10.2f",
             .description, .hours, .rate, .subtotal);
     }
     my $tax-label = "Tax ({$inv.tax-rate * 100}%)";
-    given @lines {
-        .push: "-" x 58;
-        .push: sprintf("%46s %10.2f", "Subtotal",  $inv.subtotal);
-        .push: sprintf("%46s %10.2f", $tax-label,  $inv.tax);
-        .push: sprintf("%46s %10.2f", "Total",     $inv.total);
-        .join("\n");
-    }
+    @lines.append: [
+        "-" x 58,
+        sprintf("%46s %10.2f", "Subtotal",  $inv.subtotal),
+        sprintf("%46s %10.2f", $tax-label,  $inv.tax),
+        sprintf("%46s %10.2f", "Total",     $inv.total),
+    ];
+    @lines.join("\n");
 }
 
 my $EXAMPLE = q:to/END/;
