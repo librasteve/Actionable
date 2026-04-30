@@ -34,7 +34,7 @@ grammar Grammar {
     rule  item-line    { item     <description=quoted>
                          hours    <hours=number>
                          rate     <rate=number>         }
-    token id     { <[A..Za..z0..9_\-]>+      }
+    token id     { <[A..Za..z0..9_-]>+       }
     token date   { \d**4 '-' \d**2 '-' \d**2 }
     token quoted { '"' <( <-["]>+ )> '"'     }
     token number { \d+ [ '.' \d+ ]?          }
