@@ -25,28 +25,28 @@ grammar Grammar {
     token ws { \h* }
 
     token TOP {
-        <invoice-line>
-        [ \n+ <ws> [ <field-line> | <item-line> ] ]*
+        <head-line>
+        [ \n+ <ws> [ <info-line> | <item-line> ] ]*
         \n*
     }
-    rule  invoice-line  { invoice  <id>                     }
-    rule  field-line    { | date   <date>
-                          | client <client=quoted-string>
-                          | tax    <tax-rate=number> '%'    }
-    rule  item-line     { item     <description=quoted-string>
-                          hours    <hours=number>
-                          rate     <rate=number>            }
-    token id            { <[A..Za..z0..9_\-]>+       }
-    token date          { \d\d\d\d '-' \d\d '-' \d\d }
-    token quoted-string { '"' <( <-["]>+ )> '"'      }
-    token number        { \d+ [ '.' \d+ ]?           }
+    rule  head-line { invoice  <id>                  }
+    rule  info-line { | date   <date>
+                      | client <client=quoted>
+                      | tax    <tax-rate=number> '%' }
+    rule  item-line { item     <description=quoted>
+                      hours    <hours=number>
+                      rate     <rate=number>         }
+    token id        { <[A..Za..z0..9_\-]>+       }
+    token date      { \d\d\d\d '-' \d\d '-' \d\d }
+    token quoted    { '"' <( <-["]>+ )> '"'      }
+    token number    { \d+ [ '.' \d+ ]?           }
 }
 
 class Actions {
     method TOP($/) {
-        my $inv = Invoice.action($<invoice-line>);
-        $inv.action($_) for $<field-line>;
-        $inv.items.push(Item.action($_)) for $<item-line>;
+        my $inv = Invoice.action($<head-line>);
+         { $inv.action($_) } for $<info-line>;
+         { $inv.items.push(Item.action($_)) } for $<item-line>;
         make $inv;
     }
 }
