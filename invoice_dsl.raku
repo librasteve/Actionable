@@ -22,30 +22,29 @@ class Invoice does Actionable {
 }
 
 grammar Grammar {
-    token ws { \h* }
-
     token TOP {
-        <head-line>
-        [ \n+ <ws> [ <info-line> | <item-line> ] ]*
+        <invoice-line>
+        [ \n+ <ws> [ <field-line> | <item-line> ] ]*
         \n*
     }
-    rule  head-line { invoice  <id>                  }
-    rule  info-line { | date   <date>
-                      | client <client=quoted>
-                      | tax    <tax-rate=number> '%' }
-    rule  item-line { item     <description=quoted>
-                      hours    <hours=number>
-                      rate     <rate=number>         }
-    token id        { <[A..Za..z0..9_\-]>+       }
-    token date      { \d\d\d\d '-' \d\d '-' \d\d }
-    token quoted    { '"' <( <-["]>+ )> '"'      }
-    token number    { \d+ [ '.' \d+ ]?           }
+    rule  invoice-line { invoice  <id>                  }
+    rule  field-line   { | date   <date>
+                         | client <client=quoted>
+                         | tax    <tax-rate=number> '%' }
+    rule  item-line    { item     <description=quoted>
+                         hours    <hours=number>
+                         rate     <rate=number>         }
+    token id     { <[A..Za..z0..9_\-]>+      }
+    token date   { \d**4 '-' \d**2 '-' \d**2 }
+    token quoted { '"' <( <-["]>+ )> '"'     }
+    token number { \d+ [ '.' \d+ ]?          }
+    token ws { \h* }  #horizontal whitespace only
 }
 
 class Actions {
     method TOP($/) {
-        my $inv = Invoice.action($<head-line>);
-         { $inv.action($_) } for $<info-line>;
+        my $inv = Invoice.action($<invoice-line>);
+         { $inv.action($_) } for $<field-line>;
          { $inv.items.push(Item.action($_)) } for $<item-line>;
         make $inv;
     }
