@@ -1,6 +1,8 @@
 Revision history for Actionable
 
 {{$NEXT}}
+
+0.0.2  2026-05-15T17:05:13+01:00
     - fallback method raku -> all attrs
     - more examples
 
