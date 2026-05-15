@@ -1,5 +1,13 @@
 [![Actions Status](https://github.com/librasteve/Actionable/actions/workflows/test.yml/badge.svg)](https://github.com/librasteve/Actionable/actions)
 
+### method raku
+
+```raku
+method raku() returns Mu
+```
+
+fallback method raku to preempt 'Object<9230298340589>'
+
 NAME
 ====
 
@@ -11,29 +19,47 @@ SYNOPSIS
 ```raku
 use Actionable;
 
+grammar Grammar {
+    token TOP {
+        <invoice-line>
+        [ \n+ <ws> [ <field-line> | <item-line> ] ]*
+        \n*
+    }
+    rule  invoice-line { invoice  <id>                  }
+    rule  field-line   { | date   <date>
+                         | client <client=quoted>
+                         | tax    <tax-rate=number> '%' }
+    rule  item-line    { item     <description=quoted>
+                         hours    <hours=number>
+                         rate     <rate=number>         }
+    token id     { <[A..Za..z0..9_-]>+       }
+    token date   { \d**4 '-' \d**2 '-' \d**2 }
+    token quoted { '"' <( <-["]>+ )> '"'     }
+    token number { \d+ [ '.' \d+ ]?          }
+    token ws { \h* }  #horizontal whitespace only
+}
+
 class Item does Actionable {
-    has Str  $.description;
-    has Real $.hours;
-    has Real $.rate;
+    has ($.description, $.hours, $.rate);
     method subtotal { $.hours * $.rate }
 }
 
 class Invoice does Actionable {
-    has Str  $.id       is rw = "";
-    has Str  $.date     is rw = "";
-    has Str  $.client   is rw = "";
-    has Real $.tax-rate is rw = 0.0;
+    has ($.id, $.date, $.client, $.tax-rate = 0);
     has Item @.items;
     method transform(Str $attr, $raw) {
         $attr eq 'tax-rate' ?? $raw / 100 !! $raw
     }
+    method subtotal { @.items.map(*.subtotal).sum }
+    method tax      { $.subtotal * $.tax-rate }
+    method total    { $.subtotal + $.tax }
 }
 
 class Actions {
     method TOP($/) {
-        my $inv = Invoice.action($<invoice-line>);  # create from type object
-        $inv.action($_) for $<field-line>;           # update existing instance
-        $inv.items.push(Item.action($_)) for $<item-line>;
+        my $inv = Invoice.action($<invoice-line>);
+         { $inv.action($_) } for $<field-line>;
+         { $inv.items.push(Item.action($_)) } for $<item-line>;
         make $inv;
     }
 }
