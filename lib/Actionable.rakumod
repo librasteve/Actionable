@@ -4,6 +4,21 @@ method capture-map(--> Hash) { {} }
 
 method transform(Str $attr, $raw) { $raw }
 
+#| fallback method raku to preempt 'Object<9230298340589>'
+method raku {
+    self.^attributes
+        .map({
+        .name.substr(2) => .get_value(self)
+    }).Hash.raku
+}
+
+method attr-hash {
+    self.^attributes
+        .map({
+        .name.substr(2) => .get_value(self)
+    }).Hash
+}
+
 multi method action(Any:U: $match) {
     my %init;
     apply-match(self, $match, -> $attr, $name, $val { %init{$name} = $val });
@@ -28,12 +43,12 @@ sub apply-match($self, $match, &act) {
 }
 
 sub resolve-capture($match, Str $path) {
-    my $cur = $match;
+    my $current = $match;
     for $path.split('.') -> $step {
-        $cur = $step ~~ /^ \d+ $/ ?? $cur[$step.Int] !! $cur{$step};
-        return Nil without $cur;
+        $current = $step ~~ /^ \d+ $/ ?? $current[$step.Int] !! $current{$step};
+        return Nil without $current;
     }
-    $cur
+    $current
 }
 
 =begin pod
@@ -48,29 +63,47 @@ Actionable - auto-populate Raku classes from grammar match objects
 
 use Actionable;
 
+grammar Grammar {
+    token TOP {
+        <invoice-line>
+        [ \n+ <ws> [ <field-line> | <item-line> ] ]*
+        \n*
+    }
+    rule  invoice-line { invoice  <id>                  }
+    rule  field-line   { | date   <date>
+                         | client <client=quoted>
+                         | tax    <tax-rate=number> '%' }
+    rule  item-line    { item     <description=quoted>
+                         hours    <hours=number>
+                         rate     <rate=number>         }
+    token id     { <[A..Za..z0..9_-]>+       }
+    token date   { \d**4 '-' \d**2 '-' \d**2 }
+    token quoted { '"' <( <-["]>+ )> '"'     }
+    token number { \d+ [ '.' \d+ ]?          }
+    token ws { \h* }  #horizontal whitespace only
+}
+
 class Item does Actionable {
-    has Str  $.description;
-    has Real $.hours;
-    has Real $.rate;
+    has ($.description, $.hours, $.rate);
     method subtotal { $.hours * $.rate }
 }
 
 class Invoice does Actionable {
-    has Str  $.id       is rw = "";
-    has Str  $.date     is rw = "";
-    has Str  $.client   is rw = "";
-    has Real $.tax-rate is rw = 0.0;
+    has ($.id, $.date, $.client, $.tax-rate = 0);
     has Item @.items;
     method transform(Str $attr, $raw) {
         $attr eq 'tax-rate' ?? $raw / 100 !! $raw
     }
+    method subtotal { @.items.map(*.subtotal).sum }
+    method tax      { $.subtotal * $.tax-rate }
+    method total    { $.subtotal + $.tax }
 }
 
 class Actions {
     method TOP($/) {
-        my $inv = Invoice.action($<invoice-line>);  # create from type object
-        $inv.action($_) for $<field-line>;           # update existing instance
-        $inv.items.push(Item.action($_)) for $<item-line>;
+        my $inv = Invoice.action($<invoice-line>);
+         { $inv.action($_) } for $<field-line>;
+         { $inv.items.push(Item.action($_)) } for $<item-line>;
         make $inv;
     }
 }
