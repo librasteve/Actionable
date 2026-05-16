@@ -1,5 +1,4 @@
 use Actionable;
-use FStrings;
 
 grammar Grammar {
     token TOP {    <.slash><subject>
@@ -21,13 +20,9 @@ class Command does Actionable {
     has ($.subject, $.command, $.data);
 
     method raku {
-        my @data = $!data.split('/');
-        qq:to/RAKU/.trim;
-        subject       $!subject
-        command       $!command
-        data          @data[*]
-        subject-id    @data[0]
-        RAKU
+        my %h := $.action-hash;
+        %h<subject-id> = $!data.split('/')[0];
+        $.action-table(%h);
     }
 }
 

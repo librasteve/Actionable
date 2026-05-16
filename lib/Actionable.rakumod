@@ -1,35 +1,5 @@
 unit role Actionable;
 
-method capture-map(--> Hash) { {} }
-
-method transform(Str $attr, $raw) { $raw }
-
-#| fallback method raku to preempt 'Object<9230298340589>'
-method raku {
-    self.^attributes
-        .map({
-        .name.substr(2) => .get_value(self)
-    }).Hash.raku
-}
-
-method attr-hash {
-    self.^attributes
-        .map({
-        .name.substr(2) => .get_value(self)
-    }).Hash
-}
-
-multi method action(Any:U: $match) {
-    my %init;
-    apply-match(self, $match, -> $attr, $name, $val { %init{$name} = $val });
-    self.new(|%init);
-}
-
-multi method action(Any:D: $match) {
-    apply-match(self, $match, -> $attr, $name, $val { $attr.set_value(self, $val) });
-    self
-}
-
 sub apply-match($self, $match, &act) {
     my %map = $self.capture-map;
     for $self.^attributes -> $attr {
@@ -50,6 +20,49 @@ sub resolve-capture($match, Str $path) {
     }
     $current
 }
+
+method capture-map(--> Hash) { {} }
+
+method transform(Str $attr, $raw) { $raw }
+
+multi method action(Any:U: $match) {
+    my %init;
+    apply-match(self, $match, -> $attr, $name, $val { %init{$name} = $val });
+    self.new(|%init);
+}
+
+multi method action(Any:D: $match) {
+    apply-match(self, $match, -> $attr, $name, $val { $attr.set_value(self, $val) });
+    self
+}
+
+#| get a hash of all the attrs with values populated via .action
+method action-hash {
+    self.^attributes
+        .map({
+        .name.substr(2) => .get_value(self)
+    }).Hash
+}
+
+#| fallback method raku to preempt 'Object<9230298340589>'
+method raku {
+    self.action-hash.raku
+}
+
+#| basic table of action-hash values $k => $v
+multi method action-table(%h = self.action-hash) {
+    my $col1 = %h.keys.map(*.chars).max;
+    my $col2 = %h.values.map(*.chars).max;
+
+    gather {
+        for %h.sort -> $p {
+            my ($k, $v) = $p.kv;
+            $v = "[{$v.join(", ")}]" if $v ~~ Iterable;
+            take sprintf("%-{$col1}s %-1s %-{$col2}s", $k, '=>', $v);
+        }
+    }.join("\n");
+}
+
 
 =begin pod
 
