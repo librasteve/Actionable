@@ -7,8 +7,7 @@
     ],
     "auth": "zef:librasteve",
     "depends": [
-        "FStrings",
-        "Form"
+        "FStrings"
     ],
     "build-depends": [],
     "provides": {

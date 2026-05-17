@@ -33,29 +33,29 @@ class Invoice does Actionable {
         $attr eq 'tax-rate' ?? $raw / 100 !! $raw
     }
     method subtotal { @.items.map(*.subtotal).sum }
+    method label    { "Tax ({$.tax-rate * 100}%)" }
     method tax      { $.subtotal * $.tax-rate }
     method total    { $.subtotal + $.tax }
 
-    method raku     {
-        given self {
-            my $label = "Tax ({.tax-rate * 100}%)";
+    method raku {
+        { qq:to/INVOICE/.trim;
 
-            qq:to/INVOICE/.trim;
             Invoice: {.id}
             Date:    {.date}
             Client:  {.client}
 
             Description                     Hours     Rate   Subtotal
             ---------------------------------------------------------
-            {[for .items {f(
-            .description -f 30, .hours +f 6.1, .rate +f 8.2, .subtotal +f 10.2)
-            }].join("\n")}
+            { .items.map({
+            f(.description -f 30,.hours +f 6.1,.rate +f 8.2, .subtotal +f 10.2)
+            }).join("\n") }
             ---------------------------------------------------------
                                                 Subtotal   { .subtotal +f 10.2}
-                                                {$label}   { .tax      +f 10.2}
+                                                {.label}   { .tax      +f 10.2}
                                                 Total      { .total    +f 10.2}
             INVOICE
-        }
+
+        } given self
     }
 }
 
