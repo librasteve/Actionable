@@ -1,13 +1,5 @@
 [![Actions Status](https://github.com/librasteve/Actionable/actions/workflows/test.yml/badge.svg)](https://github.com/librasteve/Actionable/actions)
 
-### method raku
-
-```raku
-method raku() returns Mu
-```
-
-fallback method raku to preempt 'Object<9230298340589>'
-
 NAME
 ====
 
