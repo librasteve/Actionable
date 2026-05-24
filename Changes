@@ -1,8 +1,11 @@
 Revision history for Actionable
 
 {{$NEXT}}
+
+0.0.3  2026-05-24T18:39:21+01:00
     - action-hash
     - action-table
+    - action-to-json
 
 0.0.2  2026-05-15T17:05:13+01:00
     - fallback method raku -> all attrs

@@ -1,5 +1,7 @@
 unit role Actionable;
 
+use JSON::Fast;
+
 sub apply-match($self, $match, &act) {
     my %map = $self.capture-map;
     for $self.^attributes -> $attr {
@@ -42,6 +44,11 @@ method action-hash {
         .map({
         .name.substr(2) => .get_value(self)
     }).Hash
+}
+
+#| get json of all the attrs with values populated via .action
+method action-to-json {
+    self.action-hash.&to-json;
 }
 
 #| fallback method raku to preempt 'Object<9230298340589>'

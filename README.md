@@ -1,5 +1,21 @@
 [![Actions Status](https://github.com/librasteve/Actionable/actions/workflows/test.yml/badge.svg)](https://github.com/librasteve/Actionable/actions)
 
+### method action-hash
+
+```raku
+method action-hash() returns Mu
+```
+
+get a hash of all the attrs with values populated via .action
+
+### method action-to-json
+
+```raku
+method action-to-json() returns Mu
+```
+
+get json of all the attrs with values populated via .action
+
 ### method raku
 
 ```raku
@@ -7,6 +23,16 @@ method raku() returns Mu
 ```
 
 fallback method raku to preempt 'Object<9230298340589>'
+
+### method action-table
+
+```raku
+method action-table(
+    %h = Code.new
+) returns Mu
+```
+
+basic table of action-hash values $k => $v
 
 NAME
 ====
