@@ -1,76 +1,3 @@
-unit role Actionable;
-
-use JSON::Fast;
-
-sub apply-match($self, $match, &act) {
-    my %map = $self.capture-map;
-    for $self.^attributes -> $attr {
-        next if $attr.name.starts-with('@') || $attr.name.starts-with('%');
-        my $name = $attr.name.substr(2);
-        my $path = %map{$name} // $name;
-        my $raw  = resolve-capture($match, $path) // next;
-        my $val  = $self.transform($name, $attr.type ~~ Numeric ?? +$raw !! ~$raw);
-        act($attr, $name, $val);
-    }
-}
-
-sub resolve-capture($match, Str $path) {
-    my $current = $match;
-    for $path.split('.') -> $step {
-        $current = $step ~~ /^ \d+ $/ ?? $current[$step.Int] !! $current{$step};
-        return Nil without $current;
-    }
-    $current
-}
-
-method capture-map(--> Hash) { {} }
-
-method transform(Str $attr, $raw) { $raw }
-
-multi method action(Any:U: $match) {
-    my %init;
-    apply-match(self, $match, -> $attr, $name, $val { %init{$name} = $val });
-    self.new(|%init);
-}
-
-multi method action(Any:D: $match) {
-    apply-match(self, $match, -> $attr, $name, $val { $attr.set_value(self, $val) });
-    self
-}
-
-#| get a hash of all the attrs with values populated via .action
-method action-hash {
-    self.^attributes
-        .map({
-        .name.substr(2) => .get_value(self)
-    }).Hash
-}
-
-#| get json of all the attrs with values populated via .action
-method action-to-json {
-    self.action-hash.&to-json;
-}
-
-#| fallback method raku to preempt 'Object<9230298340589>'
-method raku {
-    self.action-hash.raku
-}
-
-#| basic table of action-hash values $k => $v
-multi method action-table(%h = self.action-hash) {
-    my $col1 = %h.keys.map(*.chars).max;
-    my $col2 = %h.values.map(*.chars).max;
-
-    gather {
-        for %h.sort -> $p {
-            my ($k, $v) = $p.kv;
-            $v = "[{$v.join(", ")}]" if $v ~~ Iterable;
-            take sprintf("%-{$col1}s %-1s %-{$col2}s", $k, '=>', $v);
-        }
-    }.join("\n");
-}
-
-
 =begin pod
 
 =head1 NAME
@@ -187,6 +114,82 @@ method transform(Str $attr, $raw) {
 
 =end code
 
+=end pod
+
+
+unit role Actionable;
+
+use JSON::Fast;
+
+sub apply-match($self, $match, &act) {
+    my %map = $self.capture-map;
+    for $self.^attributes -> $attr {
+        next if $attr.name.starts-with('@') || $attr.name.starts-with('%');
+        my $name = $attr.name.substr(2);
+        my $path = %map{$name} // $name;
+        my $raw  = resolve-capture($match, $path) // next;
+        my $val  = $self.transform($name, $attr.type ~~ Numeric ?? +$raw !! ~$raw);
+        act($attr, $name, $val);
+    }
+}
+
+sub resolve-capture($match, Str $path) {
+    my $current = $match;
+    for $path.split('.') -> $step {
+        $current = $step ~~ /^ \d+ $/ ?? $current[$step.Int] !! $current{$step};
+        return Nil without $current;
+    }
+    $current
+}
+
+method capture-map(--> Hash) { {} }
+
+method transform(Str $attr, $raw) { $raw }
+
+multi method action(Any:U: $match) {
+    my %init;
+    apply-match(self, $match, -> $attr, $name, $val { %init{$name} = $val });
+    self.new(|%init);
+}
+
+multi method action(Any:D: $match) {
+    apply-match(self, $match, -> $attr, $name, $val { $attr.set_value(self, $val) });
+    self
+}
+
+#| get a hash of all the attrs with values populated via .action
+method action-hash {
+    self.^attributes
+        .map({
+        .name.substr(2) => .get_value(self)
+    }).Hash
+}
+
+#| get json of all the attrs with values populated via .action
+method action-to-json {
+    self.action-hash.&to-json;
+}
+
+#| fallback method raku to preempt 'Object<9230298340589>'
+method raku {
+    self.action-hash.raku
+}
+
+#| basic table of action-hash values $k => $v
+multi method action-table(%h = self.action-hash) {
+    my $col1 = %h.keys.map(*.chars).max;
+    my $col2 = %h.values.map(*.chars).max;
+
+    gather {
+        for %h.sort -> $p {
+            my ($k, $v) = $p.kv;
+            $v = "[{$v.join(", ")}]" if $v ~~ Iterable;
+            take sprintf("%-{$col1}s %-1s %-{$col2}s", $k, '=>', $v);
+        }
+    }.join("\n");
+}
+
+=begin pod
 =head1 AUTHOR
 
 librasteve <librasteve@furnival.net>
