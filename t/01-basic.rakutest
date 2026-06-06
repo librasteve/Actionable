@@ -64,4 +64,25 @@ subtest 'missing capture is silently skipped', {
     nok  $s.nonexistent.defined,        'absent capture leaves attr at default';
 };
 
+subtest '.made value preferred over raw capture', {
+    class Boxed does Actionable {
+        has $.name;
+    }
+    class BoxedActions {
+        method name($/) { make 'made-' ~ $/ }
+    }
+    my $m = TestGrammar.parse('widget sprocket qty 5 price 9.99',
+                               actions => BoxedActions.new);
+    my $w = Boxed.action($m<widget-line>);
+    is $w.name, 'made-sprocket', '.made preferred over stringified capture';
+};
+
+subtest '%h injects and overrides match captures', {
+    my $m = TestGrammar.parse('widget sprocket qty 5 price 9.99');
+    my $w = Widget.action($m<widget-line>, name => 'injected', qty => 99);
+    is     $w.name,  'injected', '%h injects value not in match';
+    is     $w.qty,   99,         '%h wins over match capture';
+    is-approx $w.price, 9.99,   'unoverridden attr still filled from match';
+};
+
 done-testing;

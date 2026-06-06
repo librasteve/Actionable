@@ -114,6 +114,46 @@ method transform(Str $attr, $raw) {
 
 =end code
 
+=head2 Sub-match C<.made> values
+
+If a sub-match has been processed by an C<Actions> method that called C<make>,
+C<action> prefers the C<.made> value over raw string coercion. This enables
+nested-class population without any explicit wiring:
+
+=begin code :lang<raku>
+
+class jCard does Actionable {
+    has Address $.adr;   # populated automatically from $<adr>.made
+    ...
+}
+
+class Actions {
+    method adr($/)  { make Address.action($/) }   # sets .made on $<adr>
+    method TOP($/)  { make jCard.action($/) }      # picks up .made automatically
+}
+
+=end code
+
+=head2 Injecting values via named arguments
+
+Pass named arguments to C<action> to supply or override attribute values
+directly. Named arguments win over both C<.made> and raw captures, and are
+used as-is (no coercion, no C<transform> call):
+
+=begin code :lang<raku>
+
+make jCard.action($/, adr => $pre-built-address);
+
+=end code
+
+=head2 Precedence
+
+For each attribute, C<action> resolves its value in this order:
+
+=item 1. Named argument (C<*%h>) — highest priority
+=item 2. C<.made> of the resolved capture — if the sub-match was processed by an actions method
+=item 3. Raw capture coerced and passed through C<transform> — fallback
+
 =end pod
 
 
@@ -121,14 +161,20 @@ unit role Actionable;
 
 use JSON::Fast;
 
-sub apply-match($self, $match, &act) {
+sub apply-match($self, $match, %h, &act) {
     my %map = $self.capture-map;
     for $self.^attributes -> $attr {
         next if $attr.name.starts-with('@') || $attr.name.starts-with('%');
         my $name = $attr.name.substr(2);
+        if %h{$name}:exists {
+            act($attr, $name, %h{$name});
+            next;
+        }
         my $path = %map{$name} // $name;
         my $raw  = resolve-capture($match, $path) // next;
-        my $val  = $self.transform($name, $attr.type ~~ Numeric ?? +$raw !! ~$raw);
+        my $val  = $raw.?made.defined
+            ?? $raw.made
+            !! $self.transform($name, $attr.type ~~ Numeric ?? +$raw !! ~$raw);
         act($attr, $name, $val);
     }
 }
@@ -146,14 +192,14 @@ method capture-map(--> Hash) { {} }
 
 method transform(Str $attr, $raw) { $raw }
 
-multi method action(Any:U: $match) {
+multi method action(Any:U: $match, *%h) {
     my %init;
-    apply-match(self, $match, -> $attr, $name, $val { %init{$name} = $val });
+    apply-match(self, $match, %h, -> $attr, $name, $val { %init{$name} = $val });
     self.new(|%init);
 }
 
-multi method action(Any:D: $match) {
-    apply-match(self, $match, -> $attr, $name, $val { $attr.set_value(self, $val) });
+multi method action(Any:D: $match, *%h) {
+    apply-match(self, $match, %h, -> $attr, $name, $val { $attr.set_value(self, $val) });
     self
 }
 

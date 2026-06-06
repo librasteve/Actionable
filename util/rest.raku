@@ -1,5 +1,3 @@
-use Actionable;
-
 grammar Grammar {
     token TOP {    <.slash><subject>
     <.slash><command>
@@ -15,6 +13,8 @@ grammar Grammar {
     token data    { .*  }
     token slash   { '/' }
 }
+
+use Actionable;
 
 class Command does Actionable {
     has ($.subject, $.command, $.data);
