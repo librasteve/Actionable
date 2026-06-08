@@ -88,6 +88,17 @@ Alternatively, use Raku's aliased capture syntax in the grammar to name captures
 rule item-line { item <description=quoted-string> hours <hours=number> rate <rate=number> }
 ```
 
+Positional (quantified) captures
+--------------------------------
+
+When a named capture is produced by a quantified token (`*`, `+`, `?`) it resolves to a `Positional`. `action` handles this transparently:
+
+  * Zero matches — the attribute is skipped (left at its default).
+
+  * One match — the single element is unwrapped and used normally.
+
+  * Two or more matches — `action` dies with an unambiguous error; use `capture-map` or an explicit `Actions` method to select the desired element.
+
 Type coercion
 -------------
 
@@ -103,6 +114,43 @@ method transform(Str $attr, $raw) {
     $attr eq 'tax-rate' ?? $raw / 100 !! $raw
 }
 ```
+
+Sub-match `.made` values
+------------------------
+
+If a sub-match has been processed by an `Actions` method that called `make`, `action` prefers the `.made` value over raw string coercion. This enables nested-class population without any explicit wiring:
+
+```raku
+class jCard does Actionable {
+    has Address $.adr;   # populated automatically from $<adr>.made
+    ...
+}
+
+class Actions {
+    method adr($/)  { make Address.action($/) }   # sets .made on $<adr>
+    method TOP($/)  { make jCard.action($/) }      # picks up .made automatically
+}
+```
+
+Injecting values via named arguments
+------------------------------------
+
+Pass named arguments to `action` to supply or override attribute values directly. Named arguments win over both `.made` and raw captures, and are used as-is (no coercion, no `transform` call):
+
+```raku
+make jCard.action($/, adr => $pre-built-address);
+```
+
+Precedence
+----------
+
+For each attribute, `action` resolves its value in this order:
+
+  * 1. Named argument (`*%h`) — highest priority
+
+  * 2. `.made` of the resolved capture — if the sub-match was processed by an actions method
+
+  * 3. Raw capture coerced and passed through `transform` — fallback
 
 ### method action-hash
 
