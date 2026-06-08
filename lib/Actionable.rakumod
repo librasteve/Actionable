@@ -96,6 +96,15 @@ rule item-line { item <description=quoted-string> hours <hours=number> rate <rat
 
 =end code
 
+=head2 Positional (quantified) captures
+
+When a named capture is produced by a quantified token (C<*>, C<+>, C<?>) it
+resolves to a C<Positional>. C<action> handles this transparently:
+
+=item Zero matches — the attribute is skipped (left at its default).
+=item One match — the single element is unwrapped and used normally.
+=item Two or more matches — C<action> dies with an unambiguous error; use C<capture-map> or an explicit C<Actions> method to select the desired element.
+
 =head2 Type coercion
 
 Attributes typed as C<Numeric> (or any subtype: C<Int>, C<Real>, C<Rat>,

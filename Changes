@@ -1,8 +1,9 @@
 Revision history for Actionable
 
 {{$NEXT}}
-    - action prefers .made of a sub-match over raw coercion (enables nested-class population without explicit wiring)
-    - action accepts *%h named args to inject or override attr values; named args win over .made and raw captures
+    - action prefers .made over raw coercion
+    - action accepts *%h named args
+    - Positional role support
 
 0.0.4  2026-05-24T18:51:41+01:00
     - fix README
