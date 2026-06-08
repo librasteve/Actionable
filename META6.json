@@ -1,26 +1,19 @@
 {
-  "auth": "zef:librasteve",
-  "authors": [
-    "librasteve"
-  ],
-  "build-depends": [
-  ],
-  "depends": [
-    "FStrings",
-    "JSON::Fast"
-  ],
-  "description": "auto-populate Raku classes from grammar match objects",
-  "license": "Artistic-2.0",
-  "name": "Actionable",
-  "provides": {
-    "Actionable": "lib/Actionable.rakumod"
-  },
-  "resources": [
-  ],
-  "source-url": "https://github.com/librasteve/Actionable.git",
-  "tags": [
-  ],
-  "test-depends": [
-  ],
-  "version": "0.0.4"
+    "name": "Actionable",
+    "description": "auto-populate Raku classes from grammar match objects",
+    "version": "0.0.4",
+    "authors": [
+        "librasteve"
+    ],
+    "auth": "zef:librasteve",
+    "depends": [
+        "FStrings",
+        "JSON::Fast"
+    ],
+    "build-depends": [],
+    "provides": {
+        "Actionable": "lib/Actionable.rakumod"
+    },
+    "license": "Artistic-2.0",
+    "source-url": "https://github.com/librasteve/Actionable.git"
 }

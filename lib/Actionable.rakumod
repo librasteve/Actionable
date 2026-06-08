@@ -185,6 +185,12 @@ sub resolve-capture($match, Str $path) {
         $current = $step ~~ /^ \d+ $/ ?? $current[$step.Int] !! $current{$step};
         return Nil without $current;
     }
+    if $current ~~ Positional {
+        return Nil if !$current.elems;
+        die "Actionable: capture '$path' matched {$current.elems} times; expected 0 or 1"
+            if $current.elems > 1;
+        return $current[0];
+    }
     $current
 }
 
