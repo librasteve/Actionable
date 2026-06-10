@@ -97,7 +97,7 @@ When a named capture is produced by a quantified token (`*`, `+`, `?`) it resolv
 
   * One match — the single element is unwrapped and used normally.
 
-  * Two or more matches — `action` dies with an unambiguous error; use `capture-map` or an explicit `Actions` method to select the desired element.
+  * Two or more matches — if the target attribute is `Positional` (e.g. `Array[Str]`), the matches are stored as `Array[Str]`; otherwise `action` dies with an unambiguous error.
 
 Type coercion
 -------------
