@@ -1,6 +1,7 @@
 Revision history for Actionable
 
 {{$NEXT}}
+    - add Positional attr support (n>=2)
 
 0.0.6  2026-06-08T07:57:58+01:00
     - action prefers .made over raw coercion

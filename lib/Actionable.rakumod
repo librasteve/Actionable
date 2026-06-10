@@ -103,7 +103,7 @@ resolves to a C<Positional>. C<action> handles this transparently:
 
 =item Zero matches — the attribute is skipped (left at its default).
 =item One match — the single element is unwrapped and used normally.
-=item Two or more matches — C<action> dies with an unambiguous error; use C<capture-map> or an explicit C<Actions> method to select the desired element.
+=item Two or more matches — if the target attribute is C<Positional> (e.g. C<Array[Str]>), the matches are stored as C<Array[Str]>; otherwise C<action> dies with an unambiguous error.
 
 =head2 Type coercion
 
@@ -181,9 +181,23 @@ sub apply-match($self, $match, %h, &act) {
         }
         my $path = %map{$name} // $name;
         my $raw  = resolve-capture($match, $path) // next;
-        my $val  = $raw.?made.defined
-            ?? $raw.made
-            !! $self.transform($name, $attr.type ~~ Numeric ?? +$raw !! ~$raw);
+        my $val;
+        if $raw ~~ Positional {
+            if $attr.type ~~ Positional {
+                $val = Array[Str].new($raw.map(*.Str));
+            } else {
+                die "Actionable: capture '$path' matched {$raw.elems} times; use an Array attr or capture-map"
+                    if $raw.elems > 1;
+                my $elem = $raw[0];
+                $val = $elem.?made.defined
+                    ?? $elem.made
+                    !! $self.transform($name, $attr.type ~~ Numeric ?? +$elem !! ~$elem);
+            }
+        } else {
+            $val = $raw.?made.defined
+                ?? $raw.made
+                !! $self.transform($name, $attr.type ~~ Numeric ?? +$raw !! ~$raw);
+        }
         act($attr, $name, $val);
     }
 }
@@ -195,10 +209,7 @@ sub resolve-capture($match, Str $path) {
         return Nil without $current;
     }
     if $current ~~ Positional {
-        return Nil if !$current.elems;
-        die "Actionable: capture '$path' matched {$current.elems} times; expected 0 or 1"
-            if $current.elems > 1;
-        return $current[0];
+        return Nil unless $current.elems;
     }
     $current
 }
